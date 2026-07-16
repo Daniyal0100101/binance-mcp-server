@@ -15,11 +15,9 @@ async function main(): Promise<void> {
   }
 }
 
-if (require.main === module) {
-  main().catch((error) => {
-    logError(error);
-    process.exit(1);
-  });
-}
+main().catch((error) => {
+  logError(error);
+  process.exit(1);
+});
 
 export { BinanceMCPServer };

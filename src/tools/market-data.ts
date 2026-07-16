@@ -3,24 +3,24 @@ import {
   GetOrderBookSchema,
   GetKlinesSchema,
   Get24hrTickerSchema,
-  GetPriceInput,
-  GetOrderBookInput,
-  GetKlinesInput,
-  Get24hrTickerInput,
+  GetExchangeInfoSchema,
+  GetServerTimeSchema,
+  GetAvgPriceSchema,
 } from '../types/mcp.js';
 import { validateInput, validateSymbol } from '../utils/validation.js';
 import { handleBinanceError } from '../utils/error-handling.js';
+import { withRetry } from '../utils/retry.js';
 
 export const marketDataTools = [
   {
     name: 'get_price',
-    description: '获取指定交易对的当前价格',
+    description: 'Get current price for a trading pair',
     inputSchema: {
       type: 'object',
       properties: {
         symbol: {
           type: 'string',
-          description: '交易对符号，如 BTCUSDT',
+          description: 'Trading pair symbol, e.g. BTCUSDT',
         },
       },
       required: ['symbol'],
@@ -30,7 +30,7 @@ export const marketDataTools = [
       validateSymbol(input.symbol);
 
       try {
-        const price = await binanceClient.prices({ symbol: input.symbol });
+        const price = await withRetry(() => binanceClient.prices({ symbol: input.symbol }));
         return {
           symbol: input.symbol,
           price: price[input.symbol],
@@ -44,17 +44,17 @@ export const marketDataTools = [
 
   {
     name: 'get_orderbook',
-    description: '获取订单簿深度数据',
+    description: 'Get order book depth data for a trading pair',
     inputSchema: {
       type: 'object',
       properties: {
         symbol: {
           type: 'string',
-          description: '交易对符号，如 BTCUSDT',
+          description: 'Trading pair symbol, e.g. BTCUSDT',
         },
         limit: {
           type: 'number',
-          description: '深度限制，默认100',
+          description: 'Depth limit, default 100',
           default: 100,
         },
       },
@@ -65,10 +65,10 @@ export const marketDataTools = [
       validateSymbol(input.symbol);
 
       try {
-        const orderBook = await binanceClient.book({
+        const orderBook = await withRetry(() => binanceClient.book({
           symbol: input.symbol,
           limit: input.limit,
-        });
+        }));
 
         return {
           symbol: input.symbol,
@@ -91,22 +91,22 @@ export const marketDataTools = [
 
   {
     name: 'get_klines',
-    description: '获取K线历史数据',
+    description: 'Get K-line/candlestick historical data for a trading pair',
     inputSchema: {
       type: 'object',
       properties: {
         symbol: {
           type: 'string',
-          description: '交易对符号，如 BTCUSDT',
+          description: 'Trading pair symbol, e.g. BTCUSDT',
         },
         interval: {
           type: 'string',
           enum: ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M'],
-          description: '时间间隔',
+          description: 'Kline interval',
         },
         limit: {
           type: 'number',
-          description: '数量限制，默认500',
+          description: 'Number of candles, default 500',
           default: 500,
         },
       },
@@ -117,11 +117,11 @@ export const marketDataTools = [
       validateSymbol(input.symbol);
 
       try {
-        const klines = await binanceClient.candles({
+        const klines = await withRetry(() => binanceClient.candles({
           symbol: input.symbol,
           interval: input.interval,
           limit: input.limit,
-        });
+        }));
 
         return {
           symbol: input.symbol,
@@ -139,6 +139,7 @@ export const marketDataTools = [
             takerBuyBaseAssetVolume: kline.takerBuyBaseAssetVolume,
             takerBuyQuoteAssetVolume: kline.takerBuyQuoteAssetVolume,
           })),
+          count: klines.length,
           timestamp: Date.now(),
         };
       } catch (error) {
@@ -149,39 +150,147 @@ export const marketDataTools = [
 
   {
     name: 'get_24hr_ticker',
-    description: '获取24小时价格变动统计',
+    description: 'Get 24-hour price change statistics for a trading pair or all pairs',
     inputSchema: {
       type: 'object',
       properties: {
         symbol: {
           type: 'string',
-          description: '交易对符号，不传则获取所有交易对',
+          description: 'Trading pair symbol. If omitted, returns 24hr stats for all pairs (Warning: large response)',
         },
       },
       required: [],
     },
     handler: async (binanceClient: any, args: unknown) => {
       const input = validateInput(Get24hrTickerSchema, args);
-      
+
       if (input.symbol) {
         validateSymbol(input.symbol);
       }
 
       try {
         if (input.symbol) {
-          const ticker = await binanceClient.dailyStats({ symbol: input.symbol });
+          const ticker = await withRetry(() => binanceClient.dailyStats({ symbol: input.symbol }));
           return {
             symbol: input.symbol,
             data: ticker,
             timestamp: Date.now(),
           };
         } else {
-          const tickers = await binanceClient.dailyStats();
+          const tickers = await withRetry(() => binanceClient.dailyStats());
+          const data = Array.isArray(tickers) ? tickers : [tickers];
           return {
-            data: Array.isArray(tickers) ? tickers : [tickers],
+            count: data.length,
+            data,
             timestamp: Date.now(),
           };
         }
+      } catch (error) {
+        handleBinanceError(error);
+      }
+    },
+  },
+
+  {
+    name: 'get_exchange_info',
+    description: 'Get exchange trading rules, symbol filters (lot size, price filter, min notional), and rate limits',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        symbol: {
+          type: 'string',
+          description: 'Trading pair symbol. If omitted, returns info for all symbols (Warning: large response)',
+        },
+      },
+      required: [],
+    },
+    handler: async (binanceClient: any, args: unknown) => {
+      const input = validateInput(GetExchangeInfoSchema, args);
+
+      if (input.symbol) {
+        validateSymbol(input.symbol);
+      }
+
+      try {
+        const exchangeInfo = await withRetry(() => binanceClient.exchangeInfo());
+        const symbols = input.symbol
+          ? exchangeInfo.symbols.filter((s: any) => s.symbol === input.symbol)
+          : exchangeInfo.symbols;
+
+        return {
+          timezone: exchangeInfo.timezone,
+          serverTime: exchangeInfo.serverTime,
+          rateLimits: exchangeInfo.rateLimits,
+          symbols: symbols.map((s: any) => ({
+            symbol: s.symbol,
+            status: s.status,
+            baseAsset: s.baseAsset,
+            quoteAsset: s.quoteAsset,
+            filters: s.filters,
+            permissions: s.permissions,
+          })),
+          count: symbols.length,
+          timestamp: Date.now(),
+        };
+      } catch (error) {
+        handleBinanceError(error);
+      }
+    },
+  },
+
+  {
+    name: 'get_server_time',
+    description: 'Get Binance server time — useful for diagnosing clock sync issues',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+    handler: async (binanceClient: any, args: unknown) => {
+      validateInput(GetServerTimeSchema, args);
+
+      try {
+        const serverTime = await withRetry(() => binanceClient.time());
+        const localTime = Date.now();
+        const offset = serverTime - localTime;
+        return {
+          serverTime,
+          localTime,
+          offsetMs: offset,
+          offsetSeconds: Math.round(offset / 1000),
+          timestamp: Date.now(),
+        };
+      } catch (error) {
+        handleBinanceError(error);
+      }
+    },
+  },
+
+  {
+    name: 'get_avg_price',
+    description: 'Get current average price for a trading pair (5-minute average)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        symbol: {
+          type: 'string',
+          description: 'Trading pair symbol, e.g. BTCUSDT',
+        },
+      },
+      required: ['symbol'],
+    },
+    handler: async (binanceClient: any, args: unknown) => {
+      const input = validateInput(GetAvgPriceSchema, args);
+      validateSymbol(input.symbol);
+
+      try {
+        const avgPrice = await withRetry(() => binanceClient.avgPrice({ symbol: input.symbol }));
+        return {
+          symbol: input.symbol,
+          mins: avgPrice.mins,
+          price: avgPrice.price,
+          timestamp: Date.now(),
+        };
       } catch (error) {
         handleBinanceError(error);
       }

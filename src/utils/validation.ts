@@ -12,13 +12,18 @@ export function validateInput<T>(schema: z.ZodSchema<T>, input: unknown): T {
   }
 }
 
+/**
+ * Validates a Binance trading pair symbol.
+ * Accepts standard symbols like BTCUSDT, ETHUSDT, etc.
+ * Also accepts symbols with numeric prefixes like 1000SATSUSDT, 1INCHUSDT.
+ */
 export function isValidSymbol(symbol: string): boolean {
-  return /^[A-Z]{3,}[A-Z]{3,}$/.test(symbol);
+  return /^[A-Z0-9]{2,}USDT?$|^[A-Z0-9]{2,}[A-Z]{3,}$/.test(symbol) && symbol.length >= 6;
 }
 
 export function validateSymbol(symbol: string): void {
   if (!isValidSymbol(symbol)) {
-    throw new Error(`Invalid symbol format: ${symbol}. Expected format like BTCUSDT`);
+    throw new Error(`Invalid symbol format: ${symbol}. Expected format like BTCUSDT, ETHBTC, 1000SATSUSDT`);
   }
 }
 
@@ -33,5 +38,12 @@ export function validatePrice(price: string): void {
   const num = parseFloat(price);
   if (isNaN(num) || num <= 0) {
     throw new Error(`Invalid price: ${price}. Must be a positive number`);
+  }
+}
+
+export function validateStopPrice(stopPrice: string): void {
+  const num = parseFloat(stopPrice);
+  if (isNaN(num) || num <= 0) {
+    throw new Error(`Invalid stop price: ${stopPrice}. Must be a positive number`);
   }
 }

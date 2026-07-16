@@ -1,45 +1,64 @@
-# Binance MCP Server
+# Binance MCP Server (Hardened Fork)
 
-<a href="https://www.npmjs.com/package/binance-mcp-server" target="_blank" rel="noopener noreferrer">
-  <img src="https://img.shields.io/npm/dt/binance-mcp-server?logo=npm" alt="npm">
-</a>
+A [Model Context Protocol](https://modelcontextprotocol.io) server for Binance exchange — market data, account management, and trading. Forked from [ethancod1ng/binance-mcp-server](https://github.com/ethancod1ng/binance-mcp-server) with critical bug fixes, an expanded tool set, and production hardening.
 
-> **Multi-language Documentation**
-> - [English](README.md) (current)
-> - [中文](docs/README_zh.md)
-> - [日本語](docs/README_ja.md)
+## What's fixed vs the original
 
-A Model Context Protocol (MCP) server that provides Claude Code with Binance exchange API functionality.
+| Issue | Original | This fork |
+|---|---|---|
+| Timestamp sync | Missing `useServerTime` — signed endpoints fail with -1021 | Fixed with `useServerTime: true` |
+| Symbol validation | Rejects numeric-prefixed symbols (1000SATSUSDT, 1INCHUSDT) | Fixed regex accepts all valid Binance symbols |
+| Order types | Only MARKET and LIMIT | All 7 types: MARKET, LIMIT, STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT, LIMIT_MAKER |
+| Time in force | Hardcoded GTC | Configurable GTC, IOC, FOK |
+| `cancel_all_orders` | Requires symbol parameter | Symbol is optional — can cancel across all pairs |
+| Tool descriptions | Chinese only | English (international) |
+| Rate limiting | No retry logic | Exponential backoff with jitter for -1003 and network errors |
+| Error format | Doubled `isError` + `error` in JSON | Clean single error format |
+| Balance precision | `parseFloat + parseFloat` with FP artifacts | `Number()` based with string preservation |
+| Config wiring | `recvWindow`/`timeout` declared but never passed to client | Properly wired |
+| MCP SDK | `@modelcontextprotocol/sdk@0.4.0` | `@modelcontextprotocol/sdk@^1.12.1` |
+| dotenv | Loads `.env` from cwd at startup | Removed — env vars only via config |
+| Vulnerabilities | 13 known (3 moderate, 10 high) | 0 |
 
-## Quick Start
-### 📹 Video Tutorial
-Watch our comprehensive MCP usage tutorial to get started quickly:
-![MCP Usage Tutorial](docs/mcp-usage-tutorial.gif)
+## New tools (not in original)
 
+| Tool | Description |
+|---|---|
+| `get_exchange_info` | Trading rules, lot size filters, price filters, min notional |
+| `get_server_time` | Binance server time + local offset for clock sync diagnostics |
+| `get_avg_price` | 5-minute average price for a trading pair |
+| `get_asset_balance` | Balance for a specific asset |
+| `get_account_trades` | Executed trade history for a pair |
+| `get_trade_fee` | Trading fee rates |
+| `test_order` | Validate order parameters without placing |
+| `get_order` | Get details of a specific order by ID |
+| `get_dust_assets` | List dust assets convertible to BNB |
+| `convert_dust_to_bnb` | Convert dust assets to BNB |
 
-### Installation
+**Total: 20 tools** (up from 10 in the original)
+
+## Installation
 
 ```bash
-npm install -g binance-mcp-server
+npm install @daniyal0100101/binance-mcp
 ```
 
-### Configuration
+Or use directly with npx:
 
-This MCP server can be used with various AI tools that support MCP:
+```bash
+npx @daniyal0100101/binance-mcp
+```
 
-[![Claude](https://img.shields.io/badge/Claude-FF6B35?style=for-the-badge&logo=anthropic&logoColor=white)](https://claude.ai)
-[![Cursor](https://img.shields.io/badge/Cursor-000000?style=for-the-badge&logo=cursor&logoColor=white)](https://cursor.com)
-[![Trae](https://img.shields.io/badge/Trae-00C851?style=for-the-badge&logo=ai&logoColor=white)](https://trae.ai)
+## Configuration
 
-#### MCP Configuration
+Add to your MCP client configuration (Claude Desktop, Hermes, Cursor, etc.):
 
-Add the following configuration to your MCP settings file:
 ```json
 {
   "mcpServers": {
     "binance": {
       "command": "npx",
-      "args": ["binance-mcp-server"],
+      "args": ["-y", "@daniyal0100101/binance-mcp"],
       "env": {
         "BINANCE_API_KEY": "your_api_key",
         "BINANCE_API_SECRET": "your_api_secret",
@@ -50,79 +69,64 @@ Add the following configuration to your MCP settings file:
 }
 ```
 
-> **Note**: Set `BINANCE_TESTNET` to `"true"` if you want to use the Binance testnet for development and testing.
+Set `BINANCE_TESTNET` to `"true"` for testnet mode.
 
-#### One-Click Setup with Claude Code
+## Environment Variables
 
-```bash
-claude mcp add binance --env BINANCE_API_KEY=YOUR_API_KEY --env BINANCE_API_SECRET=YOUR_API_SECRET --env BINANCE_TESTNET=false -- npx -y binance-mcp-server
-```
+| Variable | Required | Description |
+|---|---|---|
+| `BINANCE_API_KEY` | Yes | Binance API key |
+| `BINANCE_API_SECRET` | Yes | Binance API secret |
+| `BINANCE_TESTNET` | No | Set `"true"` for testnet (default: mainnet) |
+| `LOG_LEVEL` | No | `info` (default) or `debug` for stack traces |
 
+## Tools Reference
 
-### Environment Setup
+### Market Data (7 tools, no API key needed)
 
-#### Getting API Keys
+- `get_price` — Current price for a trading pair
+- `get_orderbook` — Order book depth data
+- `get_klines` — K-line/candlestick history
+- `get_24hr_ticker` — 24-hour price change statistics
+- `get_exchange_info` — Exchange trading rules and symbol filters
+- `get_server_time` — Binance server time for clock sync diagnostics
+- `get_avg_price` — 5-minute average price
 
-**For Testnet (Recommended for Development):**
-1. Visit [Binance Testnet](https://testnet.binance.vision/)
-2. Create a testnet account (no real verification required)
-3. Go to API Management in your testnet account
-4. Create a new API key with trading permissions
-5. Note: Testnet uses virtual funds - completely safe for testing
+### Account (6 tools, API key required)
 
-**For Mainnet (Production):**
-1. Create a verified account on [Binance](https://www.binance.com/)
-2. Complete KYC verification
-3. Go to API Management in your account settings
-4. Create a new API key with required permissions
-5. ⚠️ **Warning: Mainnet uses real money - be very careful!**
+- `get_account_info` — Account info with filtered balances
+- `get_asset_balance` — Balance for a specific asset
+- `get_open_orders` — Current open orders (all or by pair)
+- `get_order_history` — Historical orders for a pair
+- `get_account_trades` — Executed trade history
+- `get_trade_fee` — Trading fee rates
 
-#### Configuration
+### Trading (5 tools, API key required)
 
-Create `.env` file:
-```env
-BINANCE_API_KEY=your_api_key_here
-BINANCE_API_SECRET=your_api_secret_here
-BINANCE_TESTNET=true  # Set to false for mainnet (REAL money)
-```
+- `place_order` — Place an order (all 7 Binance order types)
+- `test_order` — Test order validation without executing
+- `get_order` — Get order details by ID
+- `cancel_order` — Cancel a specific order
+- `cancel_all_orders` — Cancel all open orders (by pair or all)
 
-## Available Tools
+### Dust Conversion (2 tools, API key required)
 
-### Market Data
-- `get_price` - Get current price for trading pair
-- `get_orderbook` - Get order book depth data
-- `get_klines` - Get K-line/candlestick data
-- `get_24hr_ticker` - Get 24-hour price statistics
-
-### Account
-- `get_account_info` - Get account information and balances
-- `get_open_orders` - Get current open orders
-- `get_order_history` - Get historical orders
-
-### Trading (Mainnet & Testnet)
-- `place_order` - Place a new order (supports both mainnet and testnet)
-- `cancel_order` - Cancel specific order (supports both mainnet and testnet)
-- `cancel_all_orders` - Cancel all open orders (supports both mainnet and testnet)
-
-## Usage Examples
-
-Ask Claude to:
-- "Get the current price of Bitcoin"
-- "Show me the order book for ETHUSDT"
-- "Check my account balance"
-- "Place a limit buy order for 0.001 BTC at $50,000"
-
-## Security
-
-⚠️ **Important**: 
-- Set `BINANCE_TESTNET=true` for safe testing with virtual funds
-- Set `BINANCE_TESTNET=false` or omit for mainnet trading with REAL money
-- Mainnet trading will display warnings before executing orders
+- `get_dust_assets` — List dust assets convertible to BNB
+- `convert_dust_to_bnb` — Convert dust to BNB
 
 ## Development
 
 ```bash
-npm run build    # Compile TypeScript
-npm run dev      # Development mode
-npm run lint     # Run linting
+npm install
+npm run build       # Compile TypeScript
+npm run typecheck   # Type checking without emit
+npm run dev         # Development mode with tsx
 ```
+
+## License
+
+MIT — see [LICENSE](LICENSE)
+
+## Acknowledgments
+
+Originally forked from [ethancod1ng/binance-mcp-server](https://github.com/ethancod1ng/binance-mcp-server) by Ethan, published under MIT.

@@ -56,7 +56,7 @@ export function handleBinanceError(error: any): never {
 
 export function sanitizeError(error: Error): string {
   const message = error.message || 'Unknown error';
-  
+
   return message
     .replace(/API key/gi, '[API_KEY]')
     .replace(/Secret/gi, '[SECRET]')
@@ -66,7 +66,7 @@ export function sanitizeError(error: Error): string {
 export function logError(error: Error): void {
   const sanitizedMessage = sanitizeError(error);
   console.error(`[ERROR] ${error.name}: ${sanitizedMessage}`);
-  
+
   if (error.stack && process.env.LOG_LEVEL === 'debug') {
     console.error(error.stack);
   }
