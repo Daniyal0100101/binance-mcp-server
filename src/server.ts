@@ -26,6 +26,10 @@ export class BinanceMCPServer {
     this.server = new Server({
       name: serverConfig.name,
       version: serverConfig.version,
+    }, {
+      capabilities: {
+        tools: {},
+      },
     });
 
     this.binanceClient = Binance({
