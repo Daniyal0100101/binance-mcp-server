@@ -18,6 +18,9 @@ docker-compose.yml
 binance_mcp_requirements.md
 claude-code-config.json
 
+# Package manager files
+.npmrc
+
 # IDE files
 .vscode/
 .idea/
