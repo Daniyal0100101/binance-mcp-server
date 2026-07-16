@@ -10,6 +10,7 @@ import { logError, sanitizeError } from './utils/error-handling.js';
 import { marketDataTools } from './tools/market-data.js';
 import { accountTools } from './tools/account.js';
 import { tradingTools } from './tools/trading.js';
+import { dustTools } from './tools/dust.js';
 
 export class BinanceMCPServer {
   private server: Server;
@@ -18,20 +19,23 @@ export class BinanceMCPServer {
 
   constructor() {
     validateEnvironment();
-    
+
     const config = getBinanceConfig();
     const serverConfig = getServerConfig();
-    
+
     this.server = new Server({
       name: serverConfig.name,
       version: serverConfig.version,
     });
 
-      this.binanceClient = Binance({
-          apiKey: config.apiKey,
-          apiSecret: config.apiSecret,
-          httpBase: config.sandbox ? 'https://testnet.binance.vision' : 'https://api.binance.com',
-      });
+    this.binanceClient = Binance({
+      apiKey: config.apiKey,
+      apiSecret: config.apiSecret,
+      httpBase: config.sandbox ? 'https://testnet.binance.vision' : 'https://api.binance.com',
+      useServerTime: true,
+      recvWindow: config.recvWindow,
+      timeout: config.timeout,
+    } as any);
 
     this.tools = new Map();
     this.setupTools();
@@ -43,6 +47,7 @@ export class BinanceMCPServer {
       ...marketDataTools,
       ...accountTools,
       ...tradingTools,
+      ...dustTools,
     ];
 
     for (const tool of allTools) {
@@ -63,10 +68,20 @@ export class BinanceMCPServer {
 
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
-      
+
       const tool = this.tools.get(name);
       if (!tool) {
-        throw new Error(`Unknown tool: ${name}`);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                error: `Unknown tool: ${name}`,
+              }, null, 2),
+            },
+          ],
+          isError: true,
+        };
       }
 
       try {
@@ -81,32 +96,17 @@ export class BinanceMCPServer {
         };
       } catch (error) {
         logError(error as Error);
-        
-        if (error instanceof Error) {
-          const sanitizedMessage = sanitizeError(error);
-          return {
-            content: [
-              {
-                type: 'text',
-                text: JSON.stringify({
-                  error: true,
-                  message: sanitizedMessage,
-                  type: error.name || 'Error',
-                }, null, 2),
-              },
-            ],
-            isError: true,
-          };
-        }
+
+        const message = error instanceof Error
+          ? sanitizeError(error)
+          : 'Unknown error occurred';
 
         return {
           content: [
             {
               type: 'text',
               text: JSON.stringify({
-                error: true,
-                message: 'Unknown error occurred',
-                type: 'UnknownError',
+                error: message,
               }, null, 2),
             },
           ],

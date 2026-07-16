@@ -1,84 +1,127 @@
 import {
   PlaceOrderSchema,
+  TestOrderSchema,
   CancelOrderSchema,
   CancelAllOrdersSchema,
-  PlaceOrderInput,
-  CancelOrderInput,
-  CancelAllOrdersInput,
+  GetOrderSchema,
 } from '../types/mcp.js';
-import { validateInput, validateSymbol, validateQuantity, validatePrice } from '../utils/validation.js';
+import {
+  validateInput,
+  validateSymbol,
+  validateQuantity,
+  validatePrice,
+  validateStopPrice,
+} from '../utils/validation.js';
 import { handleBinanceError } from '../utils/error-handling.js';
+import { withRetry } from '../utils/retry.js';
 import { isTestnetEnabled, getNetworkMode } from '../config/binance.js';
 
 function validateAndWarnMainnet(): string {
   const networkMode = getNetworkMode();
   if (networkMode === 'mainnet') {
-    console.warn('⚠️  WARNING: Trading on MAINNET with REAL money! Double-check your orders before confirming.');
+    console.warn('⚠️  WARNING: Trading on MAINNET with REAL money!');
   }
   return networkMode;
+}
+
+const ORDER_TYPES_REQUIRING_PRICE = ['LIMIT', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT_LIMIT'];
+const ORDER_TYPES_REQUIRING_STOP_PRICE = ['STOP_LOSS', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT', 'TAKE_PROFIT_LIMIT'];
+
+function validateOrderParams(input: any): void {
+  validateSymbol(input.symbol);
+  validateQuantity(input.quantity);
+
+  if (ORDER_TYPES_REQUIRING_PRICE.includes(input.type) && !input.price) {
+    throw new Error(`Price is required for ${input.type} orders`);
+  }
+
+  if (ORDER_TYPES_REQUIRING_STOP_PRICE.includes(input.type) && !input.stopPrice) {
+    throw new Error(`Stop price is required for ${input.type} orders`);
+  }
+
+  if (input.price) {
+    validatePrice(input.price as string);
+  }
+
+  if (input.stopPrice) {
+    validateStopPrice(input.stopPrice as string);
+  }
+}
+
+function buildOrderParams(input: any): any {
+  const params: any = {
+    symbol: input.symbol,
+    side: input.side,
+    type: input.type,
+    quantity: input.quantity,
+  };
+
+  if (input.price) {
+    params.price = input.price;
+  }
+
+  if (input.stopPrice) {
+    params.stopPrice = input.stopPrice;
+  }
+
+  // Set timeInForce for LIMIT-type orders (default GTC)
+  if (ORDER_TYPES_REQUIRING_PRICE.includes(input.type) || input.type === 'LIMIT_MAKER') {
+    params.timeInForce = input.timeInForce || 'GTC';
+  }
+
+  return params;
 }
 
 export const tradingTools = [
   {
     name: 'place_order',
-    description: '下单交易 - 支持主网和测试网（主网将使用真实资金）',
+    description: 'Place a new order on Binance (supports MARKET, LIMIT, STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT, LIMIT_MAKER)',
     inputSchema: {
       type: 'object',
       properties: {
         symbol: {
           type: 'string',
-          description: '交易对符号，如 BTCUSDT',
+          description: 'Trading pair symbol, e.g. BTCUSDT',
         },
         side: {
           type: 'string',
           enum: ['BUY', 'SELL'],
-          description: '买卖方向',
+          description: 'Order side: BUY or SELL',
         },
         type: {
           type: 'string',
-          enum: ['MARKET', 'LIMIT'],
-          description: '订单类型',
+          enum: ['MARKET', 'LIMIT', 'STOP_LOSS', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT', 'TAKE_PROFIT_LIMIT', 'LIMIT_MAKER'],
+          description: 'Order type',
         },
         quantity: {
           type: 'string',
-          description: '数量',
+          description: 'Order quantity (amount of base asset)',
         },
         price: {
           type: 'string',
-          description: '价格，LIMIT订单必需',
+          description: 'Order price (required for LIMIT, STOP_LOSS_LIMIT, TAKE_PROFIT_LIMIT)',
+        },
+        stopPrice: {
+          type: 'string',
+          description: 'Stop price (required for STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT)',
+        },
+        timeInForce: {
+          type: 'string',
+          enum: ['GTC', 'IOC', 'FOK'],
+          description: 'Time in force: GTC (Good-Til-Cancelled, default), IOC (Immediate-Or-Cancel), or FOK (Fill-Or-Kill)',
         },
       },
       required: ['symbol', 'side', 'type', 'quantity'],
     },
     handler: async (binanceClient: any, args: unknown) => {
       const networkMode = validateAndWarnMainnet();
-      
+
       const input = validateInput(PlaceOrderSchema, args);
-      validateSymbol(input.symbol);
-      validateQuantity(input.quantity);
-
-      if (input.type === 'LIMIT' && !input.price) {
-        throw new Error('Price is required for LIMIT orders');
-      }
-
-      if (input.price) {
-        validatePrice(input.price);
-      }
+      validateOrderParams(input);
 
       try {
-        const orderParams: any = {
-          symbol: input.symbol,
-          side: input.side,
-          type: input.type,
-          quantity: input.quantity,
-        };
-
-        if (input.type === 'LIMIT' && input.price) {
-          orderParams.price = input.price;
-          orderParams.timeInForce = 'GTC';
-        }
-
-        const orderResult = await binanceClient.order(orderParams);
+        const orderParams = buildOrderParams(input);
+        const orderResult = await withRetry(() => binanceClient.order(orderParams));
 
         return {
           symbol: orderResult.symbol,
@@ -95,8 +138,128 @@ export const tradingTools = [
           type: orderResult.type,
           side: orderResult.side,
           fills: orderResult.fills || [],
-          timestamp: Date.now(),
           network: networkMode,
+          timestamp: Date.now(),
+        };
+      } catch (error) {
+        handleBinanceError(error);
+      }
+    },
+  },
+
+  {
+    name: 'test_order',
+    description: 'Test order creation without actually placing it. Validates parameters and checks if the order would be accepted.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        symbol: {
+          type: 'string',
+          description: 'Trading pair symbol, e.g. BTCUSDT',
+        },
+        side: {
+          type: 'string',
+          enum: ['BUY', 'SELL'],
+          description: 'Order side: BUY or SELL',
+        },
+        type: {
+          type: 'string',
+          enum: ['MARKET', 'LIMIT', 'STOP_LOSS', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT', 'TAKE_PROFIT_LIMIT', 'LIMIT_MAKER'],
+          description: 'Order type',
+        },
+        quantity: {
+          type: 'string',
+          description: 'Order quantity',
+        },
+        price: {
+          type: 'string',
+          description: 'Order price (required for LIMIT-type orders)',
+        },
+        stopPrice: {
+          type: 'string',
+          description: 'Stop price (required for stop-type orders)',
+        },
+        timeInForce: {
+          type: 'string',
+          enum: ['GTC', 'IOC', 'FOK'],
+          description: 'Time in force',
+        },
+      },
+      required: ['symbol', 'side', 'type', 'quantity'],
+    },
+    handler: async (binanceClient: any, args: unknown) => {
+      const input = validateInput(TestOrderSchema, args);
+      validateOrderParams(input);
+
+      try {
+        const orderParams = buildOrderParams(input);
+        await withRetry(() => binanceClient.orderTest(orderParams));
+
+        return {
+          symbol: input.symbol,
+          side: input.side,
+          type: input.type,
+          quantity: input.quantity,
+          price: input.price || null,
+          stopPrice: input.stopPrice || null,
+          timeInForce: input.timeInForce || 'GTC',
+          status: 'TEST_PASSED',
+          message: 'Order would be accepted. No actual order was placed.',
+          timestamp: Date.now(),
+        };
+      } catch (error) {
+        handleBinanceError(error);
+      }
+    },
+  },
+
+  {
+    name: 'get_order',
+    description: 'Get details of a specific order by order ID',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        symbol: {
+          type: 'string',
+          description: 'Trading pair symbol, e.g. BTCUSDT',
+        },
+        orderId: {
+          type: 'number',
+          description: 'Order ID',
+        },
+      },
+      required: ['symbol', 'orderId'],
+    },
+    handler: async (binanceClient: any, args: unknown) => {
+      const input = validateInput(GetOrderSchema, args);
+      validateSymbol(input.symbol);
+
+      try {
+        const order = await withRetry(() => binanceClient.getOrder({
+          symbol: input.symbol,
+          orderId: input.orderId,
+        }));
+
+        return {
+          symbol: order.symbol,
+          orderId: order.orderId,
+          orderListId: order.orderListId,
+          clientOrderId: order.clientOrderId,
+          price: order.price,
+          origQty: order.origQty,
+          executedQty: order.executedQty,
+          cummulativeQuoteQty: order.cummulativeQuoteQty,
+          status: order.status,
+          timeInForce: order.timeInForce,
+          type: order.type,
+          side: order.side,
+          stopPrice: order.stopPrice,
+          icebergQty: order.icebergQty,
+          time: order.time,
+          updateTime: order.updateTime,
+          isWorking: order.isWorking,
+          origQuoteOrderQty: order.origQuoteOrderQty,
+          timestamp: Date.now(),
         };
       } catch (error) {
         handleBinanceError(error);
@@ -106,32 +269,32 @@ export const tradingTools = [
 
   {
     name: 'cancel_order',
-    description: '取消指定订单 - 支持主网和测试网',
+    description: 'Cancel a specific order by order ID',
     inputSchema: {
       type: 'object',
       properties: {
         symbol: {
           type: 'string',
-          description: '交易对符号，如 BTCUSDT',
+          description: 'Trading pair symbol, e.g. BTCUSDT',
         },
         orderId: {
           type: 'number',
-          description: '订单ID',
+          description: 'Order ID',
         },
       },
       required: ['symbol', 'orderId'],
     },
     handler: async (binanceClient: any, args: unknown) => {
       const networkMode = validateAndWarnMainnet();
-      
+
       const input = validateInput(CancelOrderSchema, args);
       validateSymbol(input.symbol);
 
       try {
-        const cancelResult = await binanceClient.cancelOrder({
+        const cancelResult = await withRetry(() => binanceClient.cancelOrder({
           symbol: input.symbol,
           orderId: input.orderId,
-        });
+        }));
 
         return {
           symbol: cancelResult.symbol,
@@ -147,8 +310,8 @@ export const tradingTools = [
           timeInForce: cancelResult.timeInForce,
           type: cancelResult.type,
           side: cancelResult.side,
-          timestamp: Date.now(),
           network: networkMode,
+          timestamp: Date.now(),
         };
       } catch (error) {
         handleBinanceError(error);
@@ -158,31 +321,36 @@ export const tradingTools = [
 
   {
     name: 'cancel_all_orders',
-    description: '取消指定交易对所有挂单 - 支持主网和测试网',
+    description: 'Cancel all open orders for a trading pair, or all open orders across all pairs if no symbol is provided',
     inputSchema: {
       type: 'object',
       properties: {
         symbol: {
           type: 'string',
-          description: '交易对符号，如 BTCUSDT',
+          description: 'Trading pair symbol. If omitted, cancels all open orders across all pairs',
         },
       },
-      required: ['symbol'],
+      required: [],
     },
     handler: async (binanceClient: any, args: unknown) => {
       const networkMode = validateAndWarnMainnet();
-      
+
       const input = validateInput(CancelAllOrdersSchema, args);
-      validateSymbol(input.symbol);
+
+      if (input.symbol) {
+        validateSymbol(input.symbol);
+      }
 
       try {
-        const cancelResults = await binanceClient.cancelOpenOrders({
-          symbol: input.symbol,
-        });
+        const cancelResults = await withRetry(() =>
+          binanceClient.cancelOpenOrders(input.symbol ? { symbol: input.symbol } : {})
+        );
+
+        const results = Array.isArray(cancelResults) ? cancelResults : [cancelResults];
 
         return {
-          symbol: input.symbol,
-          cancelledOrders: Array.isArray(cancelResults) ? cancelResults.map((result: any) => ({
+          symbol: input.symbol || 'ALL',
+          cancelledOrders: results.map((result: any) => ({
             symbol: result.symbol,
             origClientOrderId: result.origClientOrderId,
             orderId: result.orderId,
@@ -196,10 +364,10 @@ export const tradingTools = [
             timeInForce: result.timeInForce,
             type: result.type,
             side: result.side,
-          })) : [cancelResults],
-          count: Array.isArray(cancelResults) ? cancelResults.length : 1,
-          timestamp: Date.now(),
+          })),
+          count: results.length,
           network: networkMode,
+          timestamp: Date.now(),
         };
       } catch (error) {
         handleBinanceError(error);

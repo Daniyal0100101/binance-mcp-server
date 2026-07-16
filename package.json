@@ -1,57 +1,51 @@
 {
-  "name": "binance-mcp-server",
-  "version": "1.1.2",
-  "description": "MCP server for Binance market data and trading integration",
+  "name": "@daniyal0100101/binance-mcp",
+  "version": "2.0.0",
+  "description": "Hardened MCP server for Binance market data, account management, and trading — forked from ethancod1ng/binance-mcp-server with critical fixes and expanded tool set",
   "main": "dist/index.js",
   "bin": {
-    "binance-mcp-server": "./dist/index.js"
+    "binance-mcp": "./dist/index.js"
   },
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
-    "watch": "nodemon --exec tsx src/index.ts",
     "lint": "eslint src/**/*.ts",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "binance",
     "mcp",
+    "model-context-protocol",
     "claude",
     "trading",
-    "api"
+    "crypto",
+    "ai",
+    "llm"
   ],
-  "author": "Ethan",
+  "author": "Daniyal <https://github.com/Daniyal0100101>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ethancod1ng/binance-mcp-server.git"
+    "url": "git+https://github.com/Daniyal0100101/binance-mcp-server.git"
   },
-  "homepage": "https://github.com/ethancod1ng/binance-mcp-server#readme",
+  "homepage": "https://github.com/Daniyal0100101/binance-mcp-server#readme",
   "bugs": {
-    "url": "https://github.com/ethancod1ng/binance-mcp-server/issues"
+    "url": "https://github.com/Daniyal0100101/binance-mcp-server/issues"
   },
   "files": [
     "dist",
     "README.md",
-    "README_zh.md",
-    "README_ja.md",
-    "CLAUDE.md"
+    "LICENSE"
   ],
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.4.0",
+    "@modelcontextprotocol/sdk": "^1.12.1",
     "binance-api-node": "^0.12.6",
-    "dotenv": "^16.3.1",
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/node": "^20.10.0",
-    "@typescript-eslint/eslint-plugin": "^6.13.0",
-    "@typescript-eslint/parser": "^6.13.0",
-    "eslint": "^8.54.0",
-    "nodemon": "^3.0.1",
-    "tsx": "^4.6.0",
-    "typescript": "^5.3.0"
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
   },
   "engines": {
     "node": ">=18.0.0"

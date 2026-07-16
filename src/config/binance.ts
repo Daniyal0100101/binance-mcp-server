@@ -1,9 +1,4 @@
-import { config } from 'dotenv';
-import { BinanceConfig } from '../types/binance.js';
-
-config();
-
-export function getBinanceConfig(): BinanceConfig {
+export function getBinanceConfig() {
   const apiKey = process.env.BINANCE_API_KEY;
   const apiSecret = process.env.BINANCE_API_SECRET;
   const testnet = process.env.BINANCE_TESTNET === 'true';
@@ -16,15 +11,14 @@ export function getBinanceConfig(): BinanceConfig {
     apiKey,
     apiSecret,
     sandbox: testnet,
-    recvWindow: 60000,
+    recvWindow: 5000,
     timeout: 15000,
-    disableBeautification: true,
   };
 }
 
 export function validateEnvironment(): void {
   const requiredEnvVars = ['BINANCE_API_KEY', 'BINANCE_API_SECRET'];
-  
+
   for (const envVar of requiredEnvVars) {
     if (!process.env[envVar]) {
       throw new Error(`Required environment variable ${envVar} is not set`);
@@ -47,6 +41,6 @@ export function getLogLevel(): string {
 export function getServerConfig(): { name: string; version: string } {
   return {
     name: process.env.MCP_SERVER_NAME || 'binance-mcp-server',
-    version: process.env.MCP_SERVER_VERSION || '1.0.0',
+    version: process.env.MCP_SERVER_VERSION || '2.0.0',
   };
 }
