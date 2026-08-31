@@ -14,7 +14,7 @@ import {
 } from '../utils/validation.js';
 import { handleBinanceError } from '../utils/error-handling.js';
 import { withRetry } from '../utils/retry.js';
-import { isTestnetEnabled, getNetworkMode } from '../config/binance.js';
+import { getNetworkMode } from '../config/binance.js';
 
 function validateAndWarnMainnet(): string {
   const networkMode = getNetworkMode();
