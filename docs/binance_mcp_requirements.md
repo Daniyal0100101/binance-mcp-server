@@ -157,7 +157,7 @@ BINANCE_TESTNET=true
 
 # 服务器配置
 MCP_SERVER_NAME=binance-mcp-server
-MCP_SERVER_VERSION=2.0.0
+MCP_SERVER_VERSION=2.0.1
 LOG_LEVEL=info
 ```
 
