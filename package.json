@@ -4,7 +4,7 @@
   "description": "Hardened MCP server for Binance market data, account management, and trading — forked from ethancod1ng/binance-mcp-server with critical fixes and expanded tool set",
   "main": "dist/index.js",
   "bin": {
-    "binance-mcp": "./dist/index.js"
+    "binance-mcp": "dist/index.js"
   },
   "scripts": {
     "build": "tsc",
