@@ -78,9 +78,9 @@ jobs:
           scan-args: --recursive .
 
       - name: Secret scan
-        uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: docker://ghcr.io/gitleaks/gitleaks@sha256:691af3c7c5a48b16f187ce3446d5f194838f91238f27270ed36eef6359a574d9 # v8.30.0
+        with:
+          args: detect --source=/github/workspace --no-banner --redact --verbose
 
   publish-gh:
     name: Publish to GitHub Packages
