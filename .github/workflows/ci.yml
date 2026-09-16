@@ -143,5 +143,3 @@ jobs:
 
       - name: Publish to npm
         run: npm publish --registry=https://registry.npmjs.org --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
