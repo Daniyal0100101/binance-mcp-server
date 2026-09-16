@@ -1,6 +1,6 @@
 {
   "name": "@daniyal0100101/binance-mcp",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Hardened MCP server for Binance market data, account management, and trading — forked from ethancod1ng/binance-mcp-server with critical fixes and expanded tool set",
   "main": "dist/index.js",
   "bin": {
