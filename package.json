@@ -10,8 +10,9 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx src/index.ts",
-    "lint": "eslint src/**/*.ts",
-    "typecheck": "tsc --noEmit"
+    "lint": "eslint src/**/*.ts tests/**/*.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsc -p tsconfig.test.json && node --test .test-dist/tests/*.test.js"
   },
   "keywords": [
     "binance",
@@ -39,13 +40,17 @@
     "LICENSE"
   ],
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.1",
-    "binance-api-node": "^0.12.6",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "binance-api-node": "^0.13.10",
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^22.0.0",
-    "typescript": "^5.7.0"
+    "eslint": "^10.10.0",
+    "tsx": "^4.23.13",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.70.0"
   },
   "engines": {
     "node": ">=18.0.0"

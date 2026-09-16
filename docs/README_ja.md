@@ -1,6 +1,6 @@
 # Binance MCP サーバー
 
-[![npm](https://img.shields.io/npm/dt/binance-mcp-server?logo=npm)](https://www.npmjs.com/package/binance-mcp-server)
+[![npm](https://img.shields.io/npm/dt/%40daniyal0100101%2Fbinance-mcp?logo=npm)](https://www.npmjs.com/package/@daniyal0100101/binance-mcp)
 
 > **多言語ドキュメント**
 > - [English](../README.md)
@@ -15,14 +15,14 @@ Claude Code に Binance 取引所 API 機能を提供する Model Context Protoc
 
 包括的な MCP 使用チュートリアルを視聴して、すぐに始めましょう：
 
-![MCP 使用チュートリアル](docs/mcp-usage-tutorial.gif)
+![MCP 使用チュートリアル](mcp-usage-tutorial.gif)
 
 
 
 ### インストール
 
 ```bash
-npm install -g binance-mcp-server
+npm install -g @daniyal0100101/binance-mcp
 ```
 
 ### 設定
@@ -41,7 +41,7 @@ npm install -g binance-mcp-server
   "mcpServers": {
     "binance": {
       "command": "npx",
-      "args": ["binance-mcp-server"],
+      "args": ["-y", "@daniyal0100101/binance-mcp"],
       "env": {
         "BINANCE_API_KEY": "あなたの_api_キー",
         "BINANCE_API_SECRET": "あなたの_api_シークレット",
@@ -57,7 +57,7 @@ npm install -g binance-mcp-server
 #### Claude Code ワンクリック設定
 
 ```bash
-claude mcp add binance --env BINANCE_API_KEY=YOUR_API_KEY --env BINANCE_API_SECRET=YOUR_API_SECRET --env BINANCE_TESTNET=false -- npx -y binance-mcp-server
+claude mcp add binance --env BINANCE_API_KEY=YOUR_API_KEY --env BINANCE_API_SECRET=YOUR_API_SECRET --env BINANCE_TESTNET=false -- npx -y @daniyal0100101/binance-mcp
 ```
 
 
@@ -88,7 +88,9 @@ BINANCE_API_SECRET=あなたの_api_シークレット
 BINANCE_TESTNET=true  # メインネット用に false に設定（実際のお金）
 ```
 
-## 利用可能なツール
+## 利用可能なツール（例）
+
+現在の20ツールの完全な一覧については、[英語版README](../README.md)を参照してください。
 
 ### マーケットデータ
 - `get_price` - 取引ペアの現在価格を取得

@@ -8,21 +8,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run build` - Compile TypeScript to JavaScript in dist/
 - `npm start` - Run the compiled MCP server
 - `npm run dev` - Run in development mode with tsx (no compilation needed)
-- `npm run watch` - Run with file watching and auto-restart
+
 
 **Code Quality:**
 - `npm run lint` - Run ESLint on TypeScript files
 - `npm run typecheck` - Run TypeScript type checking without emitting files
 
 **Environment Setup:**
-- Copy `.env.example` to `.env` and configure Binance API credentials
-- Set `BINANCE_TESTNET=true` for safe testing (trading tools only work in testnet mode)
+- Export the variables shown in `.env.example`; the server does not load `.env` files itself
+- Set `BINANCE_TESTNET=true` for safe testing; false or unset selects mainnet
 
 **Docker Deployment:**
 - `docker build -t binance-mcp-server .` - Build Docker image
-- `docker-compose up -d` - Deploy with Docker Compose
-- `docker-compose down` - Stop and remove containers
-- `docker-compose logs -f` - View container logs
 
 ## Architecture Overview
 
@@ -32,7 +29,7 @@ This is a **Model Context Protocol (MCP) server** that exposes Binance exchange 
 
 **MCP Server Flow:**
 1. `BinanceMCPServer` class initializes with environment validation
-2. Server registers 10 tools across 3 categories (market data, account, trading)
+2. Server registers 20 tools across 4 categories (market data, account, trading, dust conversion)
 3. Uses `StdioServerTransport` for Claude Code communication
 4. Each tool call is validated, executed via Binance client, and results returned as JSON
 
@@ -47,12 +44,13 @@ This is a **Model Context Protocol (MCP) server** that exposes Binance exchange 
 **Configuration (`src/config/binance.ts`):**
 - Environment variable validation on startup
 - Binance client configuration with API keys
-- Testnet mode enforcement for trading operations
+- Testnet/mainnet endpoint selection
 
 **Tool Categories:**
-- **Market Data** (`src/tools/market-data.ts`): get_price, get_orderbook, get_klines, get_24hr_ticker
-- **Account** (`src/tools/account.ts`): get_account_info, get_open_orders, get_order_history  
-- **Trading** (`src/tools/trading.ts`): place_order, cancel_order, cancel_all_orders (testnet only)
+- **Market Data** (`src/tools/market-data.ts`): 7 public-data tools
+- **Account** (`src/tools/account.ts`): 6 signed read-only tools
+- **Trading** (`src/tools/trading.ts`): 5 order tools
+- **Dust** (`src/tools/dust.ts`): 2 dust-conversion tools
 
 **Error Handling (`src/utils/error-handling.ts`):**
 - Sanitizes sensitive information from error messages before logging
@@ -89,25 +87,8 @@ The MCP server can be deployed using Docker for easy containerization and deploy
 
 ### Prerequisites
 
-- Docker and Docker Compose installed
+- Docker installed
 - `.env` file configured with Binance API credentials
-
-### Quick Start
-
-1. **Build and run with Docker Compose:**
-   ```bash
-   docker-compose up -d
-   ```
-
-2. **View logs:**
-   ```bash
-   docker-compose logs -f
-   ```
-
-3. **Stop the service:**
-   ```bash
-   docker-compose down
-   ```
 
 ### Manual Docker Build
 
@@ -139,5 +120,4 @@ The Docker deployment uses the following environment variables:
 
 - The container runs as a non-root user for security
 - API credentials are loaded from environment variables only
-- Resource limits are configured to prevent resource exhaustion
-- Trading functions only work in testnet mode for safety
+- Mainnet writes are possible when `BINANCE_TESTNET` is false and operate on real funds; use testnet for development

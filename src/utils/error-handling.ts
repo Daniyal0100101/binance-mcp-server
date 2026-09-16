@@ -24,7 +24,7 @@ export class ConfigurationError extends Error {
 }
 
 export function handleBinanceError(error: any): never {
-  if (error.code) {
+  if (typeof error.code === 'number') {
     switch (error.code) {
       case -1000:
         throw new BinanceError('Unknown error occurred', error.code, error);

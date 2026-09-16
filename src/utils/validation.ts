@@ -6,7 +6,7 @@ export function validateInput<T>(schema: z.ZodSchema<T>, input: unknown): T {
   } catch (error) {
     if (error instanceof z.ZodError) {
       const issues = error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`).join(', ');
-      throw new Error(`Validation error: ${issues}`);
+      throw new Error(`Validation error: ${issues}`, { cause: error });
     }
     throw error;
   }
@@ -28,22 +28,23 @@ export function validateSymbol(symbol: string): void {
 }
 
 export function validateQuantity(quantity: string): void {
-  const num = parseFloat(quantity);
-  if (isNaN(num) || num <= 0) {
+  if (!isPositiveDecimal(quantity)) {
     throw new Error(`Invalid quantity: ${quantity}. Must be a positive number`);
   }
 }
 
 export function validatePrice(price: string): void {
-  const num = parseFloat(price);
-  if (isNaN(num) || num <= 0) {
+  if (!isPositiveDecimal(price)) {
     throw new Error(`Invalid price: ${price}. Must be a positive number`);
   }
 }
 
 export function validateStopPrice(stopPrice: string): void {
-  const num = parseFloat(stopPrice);
-  if (isNaN(num) || num <= 0) {
+  if (!isPositiveDecimal(stopPrice)) {
     throw new Error(`Invalid stop price: ${stopPrice}. Must be a positive number`);
   }
+}
+
+function isPositiveDecimal(value: string): boolean {
+  return /^\d+(?:\.\d+)?$/.test(value) && Number(value) > 0;
 }
