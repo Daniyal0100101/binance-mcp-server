@@ -9,6 +9,7 @@ import {
 import { validateInput, validateSymbol } from '../utils/validation.js';
 import { handleBinanceError } from '../utils/error-handling.js';
 import { withRetry } from '../utils/retry.js';
+import { addDecimalStrings } from '../utils/decimal.js';
 
 export const accountTools = [
   {
@@ -41,8 +42,7 @@ export const accountTools = [
             .map((balance: any) => {
               const free = balance.free;
               const locked = balance.locked;
-              // Use string concatenation to avoid floating-point precision issues
-              const total = (Number(free) + Number(locked)).toString();
+              const total = addDecimalStrings(free, locked);
               return {
                 asset: balance.asset,
                 free,
@@ -92,7 +92,7 @@ export const accountTools = [
           asset: balance.asset,
           free: balance.free,
           locked: balance.locked,
-          total: (Number(balance.free) + Number(balance.locked)).toString(),
+          total: addDecimalStrings(balance.free, balance.locked),
           timestamp: Date.now(),
         };
       } catch (error) {

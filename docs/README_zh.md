@@ -1,6 +1,6 @@
 # Binance MCP 服务器
 
-[![npm](https://img.shields.io/npm/dt/binance-mcp-server?logo=npm)](https://www.npmjs.com/package/binance-mcp-server)
+[![npm](https://img.shields.io/npm/dt/%40daniyal0100101%2Fbinance-mcp?logo=npm)](https://www.npmjs.com/package/@daniyal0100101/binance-mcp)
 
 > **多语言文档**
 > - [English](../README.md)
@@ -15,14 +15,14 @@
 
 观看我们的综合 MCP 使用教程，快速上手：
 
-![MCP 使用教程](docs/mcp-usage-tutorial.gif)
+![MCP 使用教程](mcp-usage-tutorial.gif)
 
 
 
 ### 安装
 
 ```bash
-npm install -g binance-mcp-server
+npm install -g @daniyal0100101/binance-mcp
 ```
 
 ### 配置
@@ -41,7 +41,7 @@ npm install -g binance-mcp-server
   "mcpServers": {
     "binance": {
       "command": "npx",
-      "args": ["binance-mcp-server"],
+      "args": ["-y", "@daniyal0100101/binance-mcp"],
       "env": {
         "BINANCE_API_KEY": "您的_api_密钥",
         "BINANCE_API_SECRET": "您的_api_秘钥",
@@ -57,7 +57,7 @@ npm install -g binance-mcp-server
 #### Claude Code 一键设置
 
 ```bash
-claude mcp add binance --env BINANCE_API_KEY=YOUR_API_KEY --env BINANCE_API_SECRET=YOUR_API_SECRET --env BINANCE_TESTNET=false -- npx -y binance-mcp-server
+claude mcp add binance --env BINANCE_API_KEY=YOUR_API_KEY --env BINANCE_API_SECRET=YOUR_API_SECRET --env BINANCE_TESTNET=false -- npx -y @daniyal0100101/binance-mcp
 ```
 
 
@@ -88,7 +88,9 @@ BINANCE_API_SECRET=您的_api_秘钥
 BINANCE_TESTNET=true  # 设置为 false 以使用主网（真实资金）
 ```
 
-## 可用工具
+## 可用工具（示例）
+
+当前全部20个工具的权威列表请参阅[英文README](../README.md)。
 
 ### 市场数据
 - `get_price` - 获取交易对当前价格

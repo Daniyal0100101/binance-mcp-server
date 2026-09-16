@@ -142,7 +142,7 @@ binance-mcp-server/
 
 ### 5. 安全要求
 - API 密钥通过环境变量管理
-- 交易功能默认禁用，仅测试网可用
+- 开发和测试应使用测试网；主网写操作会使用真实资金
 - 输入参数严格验证
 - 敏感信息不记录到日志
 
@@ -157,7 +157,7 @@ BINANCE_TESTNET=true
 
 # 服务器配置
 MCP_SERVER_NAME=binance-mcp-server
-MCP_SERVER_VERSION=1.0.0
+MCP_SERVER_VERSION=2.0.0
 LOG_LEVEL=info
 ```
 
@@ -167,11 +167,10 @@ LOG_LEVEL=info
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsx src/index.ts",
-    "watch": "nodemon --exec tsx src/index.ts"
+    "dev": "tsx src/index.ts"
   },
   "bin": {
-    "binance-mcp-server": "./dist/index.js"
+    "binance-mcp": "./dist/index.js"
   }
 }
 ```

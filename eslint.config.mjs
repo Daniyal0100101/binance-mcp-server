@@ -7,7 +7,7 @@ export default defineConfig(
     ignores: ["dist/**"],
   },
   {
-    files: ["src/**/*.ts"],
+    files: ["src/**/*.ts", "tests/**/*.ts"],
     extends: [js.configs.recommended, tseslint.configs.recommended],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",

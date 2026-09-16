@@ -55,9 +55,9 @@ export const dustTools = [
       }
 
       try {
-        const result = await withRetry(() => binanceClient.dustTransfer({
+        const result = await binanceClient.dustTransfer({
           asset: input.assets,
-        }));
+        });
 
         return {
           network: networkMode,

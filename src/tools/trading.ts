@@ -24,7 +24,8 @@ function validateAndWarnMainnet(): string {
   return networkMode;
 }
 
-const ORDER_TYPES_REQUIRING_PRICE = ['LIMIT', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT_LIMIT'];
+const ORDER_TYPES_REQUIRING_PRICE = ['LIMIT', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT_LIMIT', 'LIMIT_MAKER'];
+const ORDER_TYPES_REQUIRING_TIME_IN_FORCE = ['LIMIT', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT_LIMIT'];
 const ORDER_TYPES_REQUIRING_STOP_PRICE = ['STOP_LOSS', 'STOP_LOSS_LIMIT', 'TAKE_PROFIT', 'TAKE_PROFIT_LIMIT'];
 
 function validateOrderParams(input: any): void {
@@ -64,8 +65,7 @@ function buildOrderParams(input: any): any {
     params.stopPrice = input.stopPrice;
   }
 
-  // Set timeInForce for LIMIT-type orders (default GTC)
-  if (ORDER_TYPES_REQUIRING_PRICE.includes(input.type) || input.type === 'LIMIT_MAKER') {
+  if (ORDER_TYPES_REQUIRING_TIME_IN_FORCE.includes(input.type)) {
     params.timeInForce = input.timeInForce || 'GTC';
   }
 
@@ -121,7 +121,7 @@ export const tradingTools = [
 
       try {
         const orderParams = buildOrderParams(input);
-        const orderResult = await withRetry(() => binanceClient.order(orderParams));
+        const orderResult = await binanceClient.order(orderParams);
 
         return {
           symbol: orderResult.symbol,
@@ -202,7 +202,7 @@ export const tradingTools = [
           quantity: input.quantity,
           price: input.price || null,
           stopPrice: input.stopPrice || null,
-          timeInForce: input.timeInForce || 'GTC',
+          timeInForce: orderParams.timeInForce || null,
           status: 'TEST_PASSED',
           message: 'Order would be accepted. No actual order was placed.',
           timestamp: Date.now(),
@@ -291,10 +291,10 @@ export const tradingTools = [
       validateSymbol(input.symbol);
 
       try {
-        const cancelResult = await withRetry(() => binanceClient.cancelOrder({
+        const cancelResult = await binanceClient.cancelOrder({
           symbol: input.symbol,
           orderId: input.orderId,
-        }));
+        });
 
         return {
           symbol: cancelResult.symbol,
@@ -342,8 +342,8 @@ export const tradingTools = [
       }
 
       try {
-        const cancelResults = await withRetry(() =>
-          binanceClient.cancelOpenOrders(input.symbol ? { symbol: input.symbol } : {})
+        const cancelResults = await binanceClient.cancelOpenOrders(
+          input.symbol ? { symbol: input.symbol } : {}
         );
 
         const results = Array.isArray(cancelResults) ? cancelResults : [cancelResults];

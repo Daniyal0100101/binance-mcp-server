@@ -7,16 +7,16 @@ A [Model Context Protocol](https://modelcontextprotocol.io) server for Binance e
 | Issue | Original | This fork |
 |---|---|---|
 | Timestamp sync | Missing `useServerTime` — signed endpoints fail with -1021 | Fixed with `useServerTime: true` |
-| Symbol validation | Rejects numeric-prefixed symbols (1000SATSUSDT, 1INCHUSDT) | Fixed regex accepts all valid Binance symbols |
+| Symbol validation | Rejects numeric-prefixed symbols (1000SATSUSDT, 1INCHUSDT) | Fixed regex accepts numeric-prefixed symbols |
 | Order types | Only MARKET and LIMIT | All 7 types: MARKET, LIMIT, STOP_LOSS, STOP_LOSS_LIMIT, TAKE_PROFIT, TAKE_PROFIT_LIMIT, LIMIT_MAKER |
 | Time in force | Hardcoded GTC | Configurable GTC, IOC, FOK |
 | `cancel_all_orders` | Requires symbol parameter | Symbol is optional — can cancel across all pairs |
 | Tool descriptions | Chinese only | English (international) |
 | Rate limiting | No retry logic | Exponential backoff with jitter for -1003 and network errors |
 | Error format | Doubled `isError` + `error` in JSON | Clean single error format |
-| Balance precision | `parseFloat + parseFloat` with FP artifacts | `Number()` based with string preservation |
+| Balance precision | `parseFloat + parseFloat` with FP artifacts | Exact decimal-string addition |
 | Config wiring | `recvWindow`/`timeout` declared but never passed to client | Properly wired |
-| MCP SDK | `@modelcontextprotocol/sdk@0.4.0` | `@modelcontextprotocol/sdk@^1.12.1` |
+| MCP SDK | `@modelcontextprotocol/sdk@0.4.0` | Maintained v1 line (`@modelcontextprotocol/sdk@^1.30.0`) |
 | dotenv | Loads `.env` from cwd at startup | Removed — env vars only via config |
 | Vulnerabilities | 13 known (3 moderate, 10 high) | 0 |
 
@@ -120,6 +120,8 @@ Set `BINANCE_TESTNET` to `"true"` for testnet mode.
 npm install
 npm run build       # Compile TypeScript
 npm run typecheck   # Type checking without emit
+npm test            # Regression tests
+npm run lint        # ESLint
 npm run dev         # Development mode with tsx
 ```
 
