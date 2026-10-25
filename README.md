@@ -16,7 +16,7 @@ A [Model Context Protocol](https://modelcontextprotocol.io) server for Binance e
 | Error format | Doubled `isError` + `error` in JSON | Clean single error format |
 | Balance precision | `parseFloat + parseFloat` with FP artifacts | Exact decimal-string addition |
 | Config wiring | `recvWindow`/`timeout` declared but never passed to client | Properly wired |
-| MCP SDK | `@modelcontextprotocol/sdk@0.4.0` | Maintained v1 line (`@modelcontextprotocol/sdk@^1.30.0`) |
+| MCP SDK | `@modelcontextprotocol/sdk@0.4.0` | Maintained v1 line (`@modelcontextprotocol/sdk@^1.32.2`) |
 | dotenv | Loads `.env` from cwd at startup | Removed — env vars only via config |
 | Vulnerabilities | 13 known (3 moderate, 10 high) | 0 |
 
@@ -38,6 +38,8 @@ A [Model Context Protocol](https://modelcontextprotocol.io) server for Binance e
 **Total: 20 tools** (up from 10 in the original)
 
 ## Installation
+
+Requires Node.js 20 or newer. Node.js 18 is no longer supported because the published dependency graph requires Node.js 20; a checkout-only override cannot enforce compatibility for package consumers.
 
 ```bash
 npm install @daniyal0100101/binance-mcp
