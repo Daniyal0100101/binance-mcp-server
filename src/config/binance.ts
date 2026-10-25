@@ -41,6 +41,6 @@ export function getLogLevel(): string {
 export function getServerConfig(): { name: string; version: string } {
   return {
     name: process.env.MCP_SERVER_NAME || 'binance-mcp-server',
-    version: process.env.MCP_SERVER_VERSION || '2.0.1',
+    version: process.env.MCP_SERVER_VERSION || '3.0.0',
   };
 }
