@@ -40,6 +40,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Run validation regression tests
+        run: npm test
+
       - name: Verify dist output
         run: |
           TOOLS=$(node -e "const { getAllTools } = require('./dist/tools/index.js'); console.log(getAllTools().length);")
