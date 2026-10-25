@@ -22,11 +22,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: ['18', '20', '22', '24']
+        node-version: ['20', '22', '24']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
@@ -55,11 +55,22 @@ jobs:
 
       - name: Check for vulnerabilities
         if: matrix.node-version == '24'
-        run: npm audit --audit-level=high
+        run: npm audit --include=dev --include=optional --audit-level=moderate
 
       - name: Verify package contents
         if: matrix.node-version == '24'
         run: npm pack --dry-run
+
+      - name: Verify clean consumer install
+        if: matrix.node-version == '20'
+        run: |
+          TARBALL=$(npm pack --ignore-scripts --pack-destination "$RUNNER_TEMP" --json | node -e "let s=''; process.stdin.on('data', d => s += d).on('end', () => console.log(JSON.parse(s)[0].filename));")
+          CONSUMER_DIR=$(mktemp -d "$RUNNER_TEMP/binance-consumer.XXXXXX")
+          cd "$CONSUMER_DIR"
+          npm init --yes
+          npm install --engine-strict --ignore-scripts --registry=https://registry.npmjs.org "$RUNNER_TEMP/$TARBALL"
+          node -e "const assert = require('node:assert/strict'); const { getAllTools } = require('@daniyal0100101/binance-mcp/dist/tools/index.js'); assert.equal(getAllTools().length, 20);"
+          npm audit --audit-level=moderate
 
   audit:
     name: Security Audit
@@ -68,7 +79,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -91,9 +102,9 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           registry-url: 'https://npm.pkg.github.com'
@@ -130,9 +141,9 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
