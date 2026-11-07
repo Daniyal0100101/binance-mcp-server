@@ -79,7 +79,7 @@ Tool handlers should:
 
 ### Binance API Integration
 
-Uses `binance-api-node` library with rate limiting respect. The client is initialized once and reused across all tool calls. Testnet mode is controlled by environment variable and enforced at the tool level for trading operations.
+Uses `binance-api-node` library with rate limiting respect. The client is initialized once and reused across all tool calls. Testnet mode is controlled by an environment variable; trading operations log a warning when not on testnet and do not block mainnet orders.
 
 ## Docker Deployment
 
