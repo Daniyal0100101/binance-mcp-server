@@ -59,7 +59,7 @@ This is a **Model Context Protocol (MCP) server** that exposes Binance exchange 
 
 **Security Model:**
 - API credentials loaded from environment variables only
-- Trading functions explicitly check `BINANCE_TESTNET=true` before execution
+- Trading functions log a warning when `BINANCE_TESTNET` is not `true`; they do not block mainnet orders
 - Input validation prevents malformed requests to Binance API
 - Error sanitization removes API keys/secrets from logs
 
@@ -111,7 +111,7 @@ The Docker deployment uses the following environment variables:
 
 - `BINANCE_API_KEY` - Your Binance API key
 - `BINANCE_API_SECRET` - Your Binance API secret  
-- `BINANCE_TESTNET` - Set to `true` for testnet (default: `true`)
+- `BINANCE_TESTNET` - Set to `true` for testnet (default: mainnet; unset or any value other than `true` is mainnet)
 - `MCP_SERVER_NAME` - Server name identifier
 - `MCP_SERVER_VERSION` - Server version
 - `LOG_LEVEL` - Logging level (info, debug, error)
